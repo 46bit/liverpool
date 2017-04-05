@@ -1,5 +1,7 @@
 import getpass
 import USB.usb
+from Crypto import Encryption
+
 def home(path):
     option = ""
     while option != "c" or option != "u":
@@ -26,4 +28,11 @@ def use(path):
         print(i, ": user:", key.username, "name:", key.name)
         i=i+1
     k = input("Select a key:")
-    key = keys[int(k)-1] 
+    key = keys[int(k)-1].key(getpass.getpass())
+    enc = Encryption(key)
+    def read_callback(cryptext):
+        return enc.decrypt(cryptext)
+    def write_callback(plaintext):
+        return enc.encrypt(plaintext)
+    fs = LiverpoolFS("image", read_callback, write_callback)
+    FUSE(fs, "mount", nothreads=True, foreground=True, **{'allow_other': True})
