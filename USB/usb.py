@@ -11,7 +11,8 @@ import USB.usb
 
 def home(path):
     option = ""
-    while option != "c" or option != "u":
+    while option != "c" and option != "u":
+        print(option)
         print("A USB device was inserted!\nDo you wish to (c)reate a new key, or (u)se an existing one?")
         option = input()
         if option == "c":
@@ -43,7 +44,21 @@ def use(path):
     def write_callback(plaintext):
         return enc.encrypt(plaintext)
     fs = LiverpoolFS("image", read_callback, write_callback)
-    FUSE(fs, "mount", nothreads=True, foreground=True, **{'allow_other': True})
+    pid = os.fork()
+    if pid:
+        os._exit(0)
+    os.setsid()
+    pid = os.fork()
+    if pid:
+        os._exit(0)
+    os.close(0)
+    os.close(1)
+    os.close(2)
+    fd = os.open(os.devnull, os.O_RDWR)
+    os.dup2(fd, 0)
+    os.dup2(fd, 1)
+    os.dup2(fd, 2)
+    FUSE(fs, "mount", foreground=True)
 
 
 class Key:
@@ -81,10 +96,13 @@ def create_key(path, user, password, name):
 
 def detect():
     olddisks = psutil.disk_partitions()
-    while True:
+    found = False
+    while not found:
         disks = psutil.disk_partitions()
         for disk in filter(lambda x: x not in olddisks, disks):
+            found=True
             home(disk.mountpoint)
+            break
         olddisks=disks
         time.sleep(1)
 
