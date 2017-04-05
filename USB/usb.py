@@ -1,9 +1,48 @@
 import psutil
 import time
 import os
-import GUI.ui
 
 import Crypto.encryption
+
+import getpass
+import USB.usb
+
+def home(path):
+    option = ""
+    while option != "c" or option != "u":
+        print("A USB device was inserted!\nDo you wish to (c)reate a new key, or (u)se an existing one?")
+        option = input()
+        if option == "c":
+            create(path)
+        elif option == "u":
+            use(path)
+        else:
+            print("Invalid option, please try again")
+
+def create(path):
+    user = input("Username: ")
+    passwd = getpass.getpass()
+    keyname = input("Key name: ")
+    create_key(path, user, passwd, keyname)
+
+def use(path):
+    keys = []
+    i = 1
+    for key in get_keys(path):
+        keyn = Key(os.path.join(path, key))
+        keys.append(keyn)
+        print(i, ": user:", keyn.username(), "name:", keyn.name())
+        i=i+1
+    k = input("Select a key:")
+    key = keys[int(k)-1].key(getpass.getpass())
+    enc = Crypto.Encryption(key)
+    def read_callback(cryptext):
+        return enc.decrypt(cryptext)
+    def write_callback(plaintext):
+        return enc.encrypt(plaintext)
+    fs = LiverpoolFS("image", read_callback, write_callback)
+    FUSE(fs, "mount", nothreads=True, foreground=True, **{'allow_other': True})
+
 
 class Key:
     def __init__(self, path):
@@ -17,9 +56,10 @@ class Key:
 
     def key(self, password):
         handle = open(self._path, "rb")
-        encrypted_key = handle.read().rstrip("\n")
-        key_file_decryptor_secret = Crypto.encrytion.derive_32_byte_key(self.username()+password+self.name())
-        key_file_decryptor = Crypto.encrytion.Encryption(key_file_decryptor_secret)
+        encrypted_key = handle.read()
+        print(encrypted_key)
+        key_file_decryptor_secret = Crypto.encryption.Encryption.derive_32_byte_key(self.username()+password+self.name())
+        key_file_decryptor = Crypto.encryption.Encryption(key_file_decryptor_secret)
         decrypted_key_file = key_file_decryptor.decrypt(encrypted_key)
         handle.close()
         return key
@@ -31,8 +71,8 @@ def get_keys(path):
 
 def create_key(path, user, password, name):
     key = os.urandom(32)
-    key_file_encryptor_secret = Crypto.encrytion.derive_32_byte_key(user+password+name)
-    key_file_encryptor = Crypto.encrytion.Encryption(key_file_encryptor_secret)
+    key_file_encryptor_secret = Crypto.encryption.Encryption.derive_32_byte_key(user+password+name)
+    key_file_encryptor = Crypto.encryption.Encryption(key_file_encryptor_secret)
     encrypted_key = key_file_encryptor.encrypt(key)
     handle = open(os.path.join(path, "key_"+user+"_"+name), "wb+")
     handle.write(key)
@@ -43,7 +83,7 @@ def detect():
     while True:
         disks = psutil.disk_partitions()
         for disk in filter(lambda x: x not in olddisks, disks):
-            GUI.ui.home(disk.mountpoint)
+            home(disk.mountpoint)
         olddisks=disks
         time.sleep(1)
 
