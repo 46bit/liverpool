@@ -4,6 +4,7 @@ import nacl.hash
 import nacl.encoding
 
 import sys
+import base64
 from time import gmtime, strftime
 
 class Encryption:
@@ -28,8 +29,9 @@ class Encryption:
 
         if not isinstance(file_bytes, bytes):
             self.raise_error("Data being encrypted is not in bytes.")
+        file_b64 = base64.b64encode(file_bytes)
 
-        return self.__secret_box.encrypt(file_bytes)
+        return self.__secret_box.encrypt(file_b64, encoder=nacl.encoding.Base64Encoder)
 
 
     def decrypt(self, encrypted_bytes):
@@ -41,8 +43,9 @@ class Encryption:
         if not isinstance(encrypted_bytes, bytes):
             self.raise_error("Data being decrypted is not in bytes.")
 
-        return self.__secret_box.decrypt(encrypted_bytes)
+        file_b64 = self.__secret_box.decrypt(encrypted_bytes, encoder=nacl.encoding.Base64Encoder)
 
+        return base64.b64decode(file_b64)
 
     def derive_32_byte_key(self, source_key):
         """ Given any str or bytes, derive a 32-byte key by
