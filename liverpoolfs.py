@@ -13,6 +13,8 @@ from fuse import FUSE, FuseOSError, Operations, fuse_get_context
 #
 # This mounts a root directory as a new filesystem. Files on disk are encrypted, then
 # this filesystem allows read/writing plaintext files.
+#
+# Based upon a basic FUSE example, https://github.com/skorokithakis/python-fuse-sample
 class LiverpoolFS(Operations):
     def __init__(self, root, read_callback=None, write_callback=None):
         self.root = root
