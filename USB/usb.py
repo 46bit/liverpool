@@ -3,6 +3,8 @@ import time
 import os
 
 import Crypto.encryption
+from Crypto.liverpoolfs import LiverpoolFS
+from fuse import FUSE, FuseOSError, Operations, fuse_get_context
 
 import getpass
 import USB.usb
@@ -57,12 +59,11 @@ class Key:
     def key(self, password):
         handle = open(self._path, "rb")
         encrypted_key = handle.read()
-        print(encrypted_key)
         key_file_decryptor_secret = Crypto.encryption.Encryption.derive_32_byte_key(self.username()+password+self.name())
         key_file_decryptor = Crypto.encryption.Encryption(key_file_decryptor_secret)
         decrypted_key_file = key_file_decryptor.decrypt(encrypted_key)
         handle.close()
-        return key
+        return decrypted_key_file
 
 
 def get_keys(path):
@@ -75,7 +76,7 @@ def create_key(path, user, password, name):
     key_file_encryptor = Crypto.encryption.Encryption(key_file_encryptor_secret)
     encrypted_key = key_file_encryptor.encrypt(key)
     handle = open(os.path.join(path, "key_"+user+"_"+name), "wb+")
-    handle.write(key)
+    handle.write(encrypted_key)
     handle.close()
 
 def detect():
