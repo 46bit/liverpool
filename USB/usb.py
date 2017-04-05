@@ -11,7 +11,7 @@ import USB.usb
 
 def home(path):
     option = ""
-    while option != "c" and option != "u":
+    while option != "u":
         print(option)
         print("A USB device was inserted!\nDo you wish to (c)reate a new key, or (u)se an existing one?")
         option = input()

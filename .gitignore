@@ -93,3 +93,4 @@ ENV/
 
 # Mount directory
 image/*
+mount/*
