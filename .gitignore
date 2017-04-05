@@ -87,3 +87,9 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# Screw you macOS
+.DS_Store
+
+# Mount directory
+image/*
