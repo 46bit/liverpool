@@ -156,14 +156,14 @@ class LiverpoolFS(Operations):
         return fd
 
     def read(self, path, length, offset, fh):
-        print('READ    ', path, fh, length, offset)
+        #print('READ    ', path, fh, length, offset)
         plaintext = self._read_plaintext(fh)
         plaintext = plaintext[offset:offset + length].rstrip(b'\0')
-        print(plaintext)
+        #print(plaintext)
         return plaintext
 
     def write(self, path, buf, offset, fh):
-        print('WRITE    ', path, fh, offset, buf)
+        #print('WRITE    ', path, fh, offset, buf)
         plaintext = self._read_plaintext(fh)
         plaintext = plaintext[:offset] + buf + plaintext[offset + len(buf):]
         self._write_plaintext(fh, plaintext)
