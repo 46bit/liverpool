@@ -321,9 +321,13 @@ class LiverpoolFS(Operations):
 
 import nacl.secret
 
-create_key(".", "46bit", "password", "key1")
-key = Key("key_46bit_key1")
-enc = Encryption(key.key("password"))
+user = "46bit"
+password = "password"
+keyname = "key1"
+
+create_key(".", user, password, keyname)
+key = Key("key_%s_%s" % (user, keyname))
+enc = Encryption(key.key(password))
 def read_callback(cryptext):
     return enc.decrypt(cryptext)
 def write_callback(plaintext):
