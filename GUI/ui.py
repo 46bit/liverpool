@@ -16,12 +16,14 @@ def create(path):
     user = input("Username: ")
     passwd = getpass.getpass()
     keyname = input("Key name: ")
+    create_key(path, user, passwd, keyname)
 
 def use(path):
     keys = []
     i = 1
     for key in get_keys(path):
         keys.add(key)
-        print(i, ": user:", key.username, "password:", key.password)
+        print(i, ": user:", key.username, "name:", key.name)
         i=i+1
-    input("Select a key:")
+    k = input("Select a key:")
+    key = keys[int(k)-1] 
