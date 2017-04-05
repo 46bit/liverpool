@@ -1,4 +1,3 @@
-FUSE
-python3
 pynacl
-pyfuse
+fusepy
+psutil
