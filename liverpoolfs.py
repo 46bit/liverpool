@@ -47,8 +47,13 @@ class LiverpoolFS(Operations):
     def getattr(self, path, fh=None):
         full_path = self._full_path(path)
         st = os.lstat(full_path)
-        return dict((key, getattr(st, key)) for key in ('st_atime', 'st_ctime',
+        attrs = dict((key, getattr(st, key)) for key in ('st_atime', 'st_ctime',
                      'st_gid', 'st_mode', 'st_mtime', 'st_nlink', 'st_size', 'st_uid'))
+        if os.path.isfile(full_path):
+            fh = self.open(path, 'rb')
+            plaintext = self._read_plaintext(fh)
+            attrs['st_size'] = len(plaintext)
+        return attrs
 
     def readdir(self, path, fh):
         full_path = self._full_path(path)
@@ -105,18 +110,16 @@ class LiverpoolFS(Operations):
     def _read_plaintext(self, fh):
         full_path = self.fd_to_full_path[fh]
         with open(full_path, 'rb') as f:
-            cryptext = f.read()
+            cryptext = f.read().rstrip(b'\0')
 
         if self.read_callback:
             plaintext = self.read_callback(cryptext)
         else:
             plaintext = cryptext
 
-        assert(type(plaintext), 'bytes')
         return plaintext#.rstrip(b'\0')
 
     def _write_plaintext(self, fh, plaintext):
-        assert(type(plaintext), 'bytes')
         plaintext = plaintext
         if self.write_callback:
             cryptext = self.write_callback(plaintext)
@@ -125,7 +128,7 @@ class LiverpoolFS(Operations):
 
         full_path = self.fd_to_full_path[fh]
         with open(full_path, 'w+b') as f:
-            f.write(cryptext)
+            f.write(cryptext.rstrip(b'\0'))
 
     def open(self, path, flags):
         full_path = self._full_path(path)
