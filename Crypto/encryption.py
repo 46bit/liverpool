@@ -1,6 +1,9 @@
 import nacl.secret
 import nacl.utils
 
+import sys
+from time import gmtime, strftime
+
 class Encryption:
 
     def __init__(self, key_bytes):
@@ -9,7 +12,7 @@ class Encryption:
 
         key_size = nacl.secret.SecretBox.KEY_SIZE
         if len(key_bytes) != key_size:
-            self.raise_error("Invalid size of encryption key, correct size is " + key_size)
+            self.raise_error("Invalid size of encryption key, correct size is " + str(key_size))
 
         self.__key_bytes = key_bytes
         self.__secret_box = nacl.secret.SecretBox(self.__key_bytes)
