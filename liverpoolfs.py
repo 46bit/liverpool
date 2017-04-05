@@ -14,11 +14,8 @@ class LiverpoolFS(Operations):
     def __init__(self, root, read_callback=None, write_callback=None):
         self.root = root
         self.fd_counter = 0
-        self.fd_access_counts = defaultdict(int)
         self.fd_to_full_path = {}
         self.full_path_to_fd = {}
-        self.handlers = {}
-        self.plaintexts = {}
         self.read_callback = read_callback
         self.write_callback = write_callback
 
@@ -105,6 +102,31 @@ class LiverpoolFS(Operations):
     # File methods
     # ============
 
+    def _read_plaintext(self, fh):
+        full_path = self.fd_to_full_path[fh]
+        print('_read_plaintext', fh, full_path)
+        with open(full_path, 'r') as f:
+            cryptext = f.read()
+
+        if self.read_callback:
+            plaintext = self.read_callback(cryptext)
+        else:
+            plaintext = cryptext
+        print('  ', plaintext)
+        return plaintext
+
+    def _write_plaintext(self, fh, plaintext):
+        if self.write_callback:
+            cryptext = self.write_callback(plaintext)
+        else:
+            cryptext = plaintext
+
+        full_path = self.fd_to_full_path[fh]
+        print('_write_plaintext', fh, full_path)
+        print('  ', cryptext)
+        with open(full_path, 'w+') as f:
+            f.write(cryptext)
+
     def open(self, path, flags):
         full_path = self._full_path(path)
         if full_path not in self.full_path_to_fd:
@@ -113,18 +135,8 @@ class LiverpoolFS(Operations):
             self.fd_to_full_path[fd] = full_path
             self.full_path_to_fd[full_path] = fd
 
-            self.handlers[fd] = os.open(full_path, flags)
-            # @TODO: Un-hardcode limit to read.
-            cryptext = os.read(self.handlers[fd], 100000000)
-            if self.read_callback:
-                plaintext = self.read_callback(cryptext)
-            else:
-                plaintext = cryptext
-            self.plaintexts[fd] = plaintext
-        else:
-            fd = self.full_path_to_fd[full_path]
-        self.fd_access_counts[fd] += 1
-        print('OPEN    ', fd, path, flags, self.fd_access_counts[fd])
+        fd = self.full_path_to_fd[full_path]
+        print('OPEN    ', fd, path, flags)
         return fd
 
     def create(self, path, mode, fi=None):
@@ -135,53 +147,37 @@ class LiverpoolFS(Operations):
         return fd
 
     def read(self, path, length, offset, fh):
-        end_position = offset + length
-        plaintext_length = len(self.plaintexts[fh])
-        end_position = min(offset + length, plaintext_length - 1)
-        start_position = min(offset, plaintext_length - 1)
-        return self.plaintexts[fh][start_position:end_position]
+        plaintext = self._read_plaintext(fh)
+        start_position = min(offset, len(plaintext) - 1)
+        end_position = min(offset + length, len(plaintext) - 1)
+        return bytes(plaintext[start_position:end_position], encoding='utf-8')
 
     def write(self, path, buf, offset, fh):
         start_position = offset
         end_position = offset + len(buf)
 
-        plaintext = bytearray(self.plaintexts[fh])
+        plaintext = bytearray(self._read_plaintext(fh), encoding='utf-8')
         plaintext[start_position:end_position] = buf
-        self.plaintexts[fh] = bytes(plaintext)
-        print('WRITE   ', end_position - start_position)
+        self._write_plaintext(fh, plaintext.decode("utf-8"))
+
         return end_position - start_position
 
     def truncate(self, path, length, fh=None):
         print('TRUNCATE   ', path, length)
-        fh = self.open(path, 'r+')
-        self.plaintexts[fh] = bytes(bytearray(self.plaintexts[fh])[0:length])
-        self.release(path, fh)
+
+        full_path = self._full_path(path)
+        fh = self.full_path_to_fd[full_path]
+        plaintext = self._read_plaintext(fh)
+        plaintext = plaintext[:length]
+        self._write_plaintext(fh, plaintext)
 
     def flush(self, path, fh):
-        print(path, fh, self.fd_to_full_path)
-        plaintext = self.plaintexts[fh]
-        if self.write_callback:
-            cryptext = self.write_callback(plaintext)
-        else:
-            cryptext = plaintext
-        os.write(self.handlers[fh], cryptext)
         return 0
 
     def release(self, path, fh):
-        print('RELEASE   ', fh, path, self.fd_access_counts[fh])
+        print('RELEASE', path, fh, self.fd_to_full_path)
         self.flush(path, fh)
-        if self.fd_access_counts[fh] == 1:
-            ret = os.close(self.handlers[fh])
-            full_path = self.fd_to_full_path[fh]
-            del self.fd_access_counts[fh]
-            del self.fd_to_full_path[fh]
-            del self.full_path_to_fd[full_path]
-            del self.handlers[fh]
-            del self.plaintexts[fh]
-        else:
-            self.fd_access_counts[fh] -= 1
-            ret = 0
-        return ret
+        return 0
 
     def fsync(self, path, fdatasync, fh):
         return self.flush(path, fh)
