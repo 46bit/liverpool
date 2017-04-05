@@ -1,8 +1,9 @@
 import psutil
 import time
 import os
+import GUI.ui
 
-import Crypto.encrytion
+import Crypto.encryption
 
 class Key:
     def __init__(self, path):
@@ -42,6 +43,8 @@ def detect():
     while True:
         disks = psutil.disk_partitions()
         for disk in filter(lambda x: x not in olddisks, disks):
-            print(disk.mountpoint)
+            GUI.ui.home(disk.mountpoint)
         olddisks=disks
         time.sleep(1)
+
+detect()
