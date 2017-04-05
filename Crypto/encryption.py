@@ -47,7 +47,9 @@ class Encryption:
 
         return base64.b64decode(file_b64)
 
-    def derive_32_byte_key(self, source_key):
+
+    @staticmethod
+    def derive_32_byte_key(source_key):
         """ Given any str or bytes, derive a 32-byte key by
             first hashing with SHA256 and then take first half
             of hash string. This is deterministic.

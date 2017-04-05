@@ -1,4 +1,4 @@
-import encryption
+from Crypto import encryption
 
 import nacl.secret
 from os import urandom, remove
