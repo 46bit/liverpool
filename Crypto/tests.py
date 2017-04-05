@@ -40,6 +40,21 @@ def test_encryption():
     except:
         tests_passed += 1
 
+    print("Testing key derivation.")
+    tests_total += 3
+    test_keys_strs = ["111", "11111111111111111111111111111111", "1111111111111111111111111111111111111111111111111111111111111111"]
+    test_keys_bytes = [str.encode(i) for i in test_keys_strs]
+    invalid_test_key = 123
+    if all(map(lambda x: len(x) == 32, (map(test_encryptor.derive_32_byte_key, test_keys_strs)))):
+        tests_passed += 1
+    if all(map(lambda x: len(x) == 32, (map(test_encryptor.derive_32_byte_key, test_keys_bytes)))):
+        tests_passed += 1
+
+    try:
+        test_encryptor.derive_32_byte_key(invalid_test_key)
+    except:
+        tests_passed += 1
+
     print("encryption passed {}/{} tests.".format(tests_passed, tests_total))
 
     return tests_passed

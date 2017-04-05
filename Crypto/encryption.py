@@ -1,5 +1,7 @@
 import nacl.secret
 import nacl.utils
+import nacl.hash
+import nacl.encoding
 
 import sys
 from time import gmtime, strftime
@@ -40,6 +42,25 @@ class Encryption:
             self.raise_error("Data being decrypted is not in bytes.")
 
         return self.__secret_box.decrypt(encrypted_bytes)
+
+
+    def derive_32_byte_key(self, source_key):
+        """ Given any str or bytes, derive a 32-byte key by
+            first hashing with SHA256 and then take first half
+            of hash string. This is deterministic.
+        """
+
+        # Accept both strings and bytes
+        if isinstance(source_key, str):
+            source_key = str.encode(source_key)
+
+        if not isinstance(source_key, bytes):
+            self.raise_error("Input key is not in bytes or string.")
+
+        hashed_key = nacl.hash.sha256(source_key, encoder=nacl.encoding.HexEncoder)
+        derived_key = hashed_key[:nacl.secret.SecretBox.KEY_SIZE]
+
+        return derived_key
 
 
     @classmethod
