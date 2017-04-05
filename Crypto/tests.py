@@ -1,4 +1,4 @@
-import Crypto.encryption
+import encryption
 
 import nacl.secret
 from os import urandom, remove
@@ -13,12 +13,12 @@ def test_encryption():
     print("Testing key size identification...")
     tests_total += 2
     try:
-        test_encryptor = Crypto.encryption.Encryption(urandom(CORRECT_KEY_SIZE - 1))
+        test_encryptor = encryption.Encryption(urandom(CORRECT_KEY_SIZE - 1))
     except:
         tests_passed += 1
 
-    test_encryptor = Crypto.encryption.Encryption(urandom(CORRECT_KEY_SIZE))
-    if isinstance(test_encryptor, Crypto.encryption.Encryption):
+    test_encryptor = encryption.Encryption(urandom(CORRECT_KEY_SIZE))
+    if isinstance(test_encryptor, encryption.Encryption):
         tests_passed += 1
 
     print("Testing encryption...")
@@ -68,15 +68,15 @@ def test_file():
 
     print("Testing file encrytions...")
     test_file = open("temp.txt",'wb+')
-    test_text = str.encode("This is a test.\nThis is a test.")
+    test_text = str.encode("This is a test.\nThis is a test.", encoding='utf-8')
     test_key = urandom(32)
-    test_encryptor = Crypto.encryption.Encryption(test_key)
+    test_encryptor = encryption.Encryption(test_key)
     encrypted_text = test_encryptor.encrypt(test_text)
     test_file.write(encrypted_text)
     test_file.close()
     test_file = open("temp.txt",'rb')
     test_file_content = test_file.read()
-    test_decryptor = Crypto.encryption.Encryption(test_key)
+    test_decryptor = encryption.Encryption(test_key)
     test_read = test_decryptor.decrypt(test_file_content)
     test_file.close()
     remove("temp.txt")

@@ -104,27 +104,27 @@ class LiverpoolFS(Operations):
 
     def _read_plaintext(self, fh):
         full_path = self.fd_to_full_path[fh]
-        print('_read_plaintext', fh, full_path)
-        with open(full_path, 'r') as f:
+        with open(full_path, 'rb') as f:
             cryptext = f.read()
 
         if self.read_callback:
             plaintext = self.read_callback(cryptext)
         else:
             plaintext = cryptext
-        print('  ', plaintext)
-        return plaintext
+
+        assert(type(plaintext), 'bytes')
+        return plaintext#.rstrip(b'\0')
 
     def _write_plaintext(self, fh, plaintext):
+        assert(type(plaintext), 'bytes')
+        plaintext = plaintext
         if self.write_callback:
             cryptext = self.write_callback(plaintext)
         else:
             cryptext = plaintext
 
         full_path = self.fd_to_full_path[fh]
-        print('_write_plaintext', fh, full_path)
-        print('  ', cryptext)
-        with open(full_path, 'w+') as f:
+        with open(full_path, 'w+b') as f:
             f.write(cryptext)
 
     def open(self, path, flags):
@@ -136,7 +136,6 @@ class LiverpoolFS(Operations):
             self.full_path_to_fd[full_path] = fd
 
         fd = self.full_path_to_fd[full_path]
-        print('OPEN    ', fd, path, flags)
         return fd
 
     def create(self, path, mode, fi=None):
@@ -144,27 +143,25 @@ class LiverpoolFS(Operations):
         full_path = self._full_path(path)
         fd = os.open(full_path, os.O_WRONLY | os.O_CREAT, mode)
         os.chown(full_path,uid,gid) #chown to context uid & gid
+        fd = self.open(path, 'r+b')
+        self._write_plaintext(fd, b'')
         return fd
 
     def read(self, path, length, offset, fh):
+        print('READ    ', path, fh, length, offset)
         plaintext = self._read_plaintext(fh)
-        start_position = min(offset, len(plaintext) - 1)
-        end_position = min(offset + length, len(plaintext) - 1)
-        return bytes(plaintext[start_position:end_position], encoding='utf-8')
+        plaintext = plaintext[offset:offset + length].rstrip(b'\0')
+        print(plaintext)
+        return plaintext
 
     def write(self, path, buf, offset, fh):
-        start_position = offset
-        end_position = offset + len(buf)
-
-        plaintext = bytearray(self._read_plaintext(fh), encoding='utf-8')
-        plaintext[start_position:end_position] = buf
-        self._write_plaintext(fh, plaintext.decode("utf-8"))
-
-        return end_position - start_position
+        print('WRITE    ', path, fh, offset, buf)
+        plaintext = self._read_plaintext(fh)
+        plaintext = plaintext[:offset] + buf + plaintext[offset + len(buf):]
+        self._write_plaintext(fh, plaintext)
+        return len(buf)
 
     def truncate(self, path, length, fh=None):
-        print('TRUNCATE   ', path, length)
-
         full_path = self._full_path(path)
         fh = self.full_path_to_fd[full_path]
         plaintext = self._read_plaintext(fh)
@@ -175,17 +172,23 @@ class LiverpoolFS(Operations):
         return 0
 
     def release(self, path, fh):
-        print('RELEASE', path, fh, self.fd_to_full_path)
         self.flush(path, fh)
         return 0
 
     def fsync(self, path, fdatasync, fh):
         return self.flush(path, fh)
 
+from Crypto.encryption import Encryption
+import nacl.secret
 
 def main(mountpoint, root):
-    FUSE(LiverpoolFS(root), mountpoint, nothreads=True, foreground=True, **{'allow_other': True})
-
+    enc = Encryption(bytes([0] * nacl.secret.SecretBox.KEY_SIZE))
+    def read_callback(cryptext):
+        return enc.decrypt(cryptext)
+    def write_callback(plaintext):
+        return enc.encrypt(plaintext)
+    fs = LiverpoolFS(root, read_callback, write_callback)
+    FUSE(fs, mountpoint, nothreads=True, foreground=True, **{'allow_other': True})
 
 if __name__ == '__main__':
     main(sys.argv[2], sys.argv[1])
