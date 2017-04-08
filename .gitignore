@@ -94,3 +94,5 @@ ENV/
 # Mount directory
 image/*
 mount/*
+!image/.dir
+!mount/.dir
