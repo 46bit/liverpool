@@ -1,6 +1,6 @@
 import getpass
-import USB.usb
-from Crypto import Encryption
+import liverpool.USB.usb
+from liverpool.Crypto.encryption import Encryption
 
 def home(path):
     option = ""

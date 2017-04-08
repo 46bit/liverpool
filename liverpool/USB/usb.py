@@ -1,13 +1,11 @@
 import psutil
 import time
 import os
-
-import Crypto.encryption
-from Crypto.liverpoolfs import LiverpoolFS
+import getpass
 from fuse import FUSE, FuseOSError, Operations, fuse_get_context
 
-import getpass
-import USB.usb
+from liverpool.Crypto.encryption import Encryption
+from liverpool.Crypto.liverpoolfs import LiverpoolFS
 
 def home(path):
     option = ""
@@ -38,7 +36,7 @@ def use(path):
         i=i+1
     k = input("Select a key:")
     key = keys[int(k)-1].key(getpass.getpass())
-    enc = Crypto.Encryption(key)
+    enc = Encryption(key)
     def read_callback(cryptext):
         return enc.decrypt(cryptext)
     def write_callback(plaintext):
@@ -74,8 +72,8 @@ class Key:
     def key(self, password):
         handle = open(self._path, "rb")
         encrypted_key = handle.read()
-        key_file_decryptor_secret = Crypto.encryption.Encryption.derive_32_byte_key(self.username()+password+self.name())
-        key_file_decryptor = Crypto.encryption.Encryption(key_file_decryptor_secret)
+        key_file_decryptor_secret = Encryption.derive_32_byte_key(self.username()+password+self.name())
+        key_file_decryptor = Encryption(key_file_decryptor_secret)
         decrypted_key_file = key_file_decryptor.decrypt(encrypted_key)
         handle.close()
         return decrypted_key_file
@@ -87,8 +85,8 @@ def get_keys(path):
 
 def create_key(path, user, password, name):
     key = os.urandom(32)
-    key_file_encryptor_secret = Crypto.encryption.Encryption.derive_32_byte_key(user+password+name)
-    key_file_encryptor = Crypto.encryption.Encryption(key_file_encryptor_secret)
+    key_file_encryptor_secret = Encryption.derive_32_byte_key(user+password+name)
+    key_file_encryptor = Encryption(key_file_encryptor_secret)
     encrypted_key = key_file_encryptor.encrypt(key)
     handle = open(os.path.join(path, "key_"+user+"_"+name), "wb+")
     handle.write(encrypted_key)

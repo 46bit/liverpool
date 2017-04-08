@@ -5,9 +5,11 @@ from __future__ import with_statement
 import os
 import sys
 import errno
+import nacl.secret
 from collections import defaultdict
-
 from fuse import FUSE, FuseOSError, Operations, fuse_get_context
+
+from liverpool.Crypto.encryption import Encryption
 
 # An encrypted FUSE filesystem.
 #
@@ -186,8 +188,6 @@ class LiverpoolFS(Operations):
     def fsync(self, path, fdatasync, fh):
         return self.flush(path, fh)
 
-from Crypto.encryption import Encryption
-import nacl.secret
 
 def main(mountpoint, root):
     enc = Encryption(bytes([0] * nacl.secret.SecretBox.KEY_SIZE))

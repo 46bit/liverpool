@@ -4,4 +4,4 @@ if __name__ == '__main__':
     print("Assembled in Liverpool")
     print("====================================")
     print("Insert or re-insert your USB key.")
-    import USB.usb
+    import liverpool.USB.usb
